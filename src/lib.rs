@@ -112,7 +112,7 @@ where
     S: Service<Request, Response = Response, Error = Infallible> + Clone + Send + 'static,
     S::Future: Send,
 {
-    type Output = Result<(), std::io::Error>;
+    type Output = ();
     type IntoFuture = ServeFuture;
 
     fn into_future(mut self) -> Self::IntoFuture {
@@ -130,6 +130,7 @@ where
                             }
                         }
                         _ => {
+                            // we only accept BEGIN streams
                             continue;
                         }
                     };
@@ -174,8 +175,6 @@ where
                         }
                     });
                 }
-
-                todo!();
             }
             .boxed(),
         }
@@ -183,11 +182,11 @@ where
 }
 
 pub struct ServeFuture {
-    inner: BoxFuture<'static, Result<(), std::io::Error>>,
+    inner: BoxFuture<'static, ()>,
 }
 
 impl Future for ServeFuture {
-    type Output = Result<(), std::io::Error>;
+    type Output = ();
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         self.inner.poll_unpin(cx)
