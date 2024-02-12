@@ -28,7 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("serving at: http://{}", onion_service.onion_name().unwrap());
 
-    arti_axum::serve(stream_requests, app).await?;
+    arti_axum::serve(stream_requests, app).await;
 
     Ok(())
 }

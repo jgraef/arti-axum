@@ -21,5 +21,5 @@ let app = Router::new().route("/", routing::get(|| async { "Hello, World!" }));
 
 println!("serving at: http://{}", onion_service.onion_name().unwrap());
 
-arti_axum::serve(stream_requests, app).await?;
+arti_axum::serve(stream_requests, app).await;
 ```
