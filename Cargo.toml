@@ -3,6 +3,13 @@ name = "arti-axum"
 version = "0.1.0"
 edition = "2021"
 authors = ["Janosch Gräf <janosch.graef@gmail.com>"]
+description = "axum::serve for onion services"
+readme = "README.md"
+homepage = "https://github.com/jgraef/arti-axum"
+repository = "https://github.com/jgraef/arti-axum"
+license = "MIT"
+keywords = ["axum", "arti", "onion", "tor"]
+categories = ["network-programming", "web-programming::http-server"]
 
 [dependencies]
 axum = "0.7.4"

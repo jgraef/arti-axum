@@ -1,6 +1,5 @@
-//! This is not a part of the arti project.
 //!
-//! This crate allows you to run your axum http server as a tor hidden service.
+//! This crate allows you to run your [axum][1] http server as a tor hidden service using [arti][2].
 //!
 //! ## Example
 //!
@@ -30,6 +29,10 @@
 //! # example(); // we're intentionally not polling the future
 //! # }
 //! ```
+//! 
+//! [1]: https://docs.rs/axum/latest/axum/index.html
+//! [2]: https://gitlab.torproject.org/tpo/core/arti/
+//!  
 
 use std::{
     convert::Infallible,
@@ -84,6 +87,9 @@ use tower::util::{
 };
 use tower_service::Service;
 
+/// Serve the service with the supplied stream requests.
+/// 
+/// See the [crate documentation](`crate`) for an example.
 pub fn serve<M, S>(
     stream_requests: impl Stream<Item = StreamRequest> + Send + 'static,
     make_service: M,
@@ -99,6 +105,7 @@ where
     }
 }
 
+/// Future returned by [`serve`].
 pub struct Serve<M, S> {
     stream_requests: BoxStream<'static, StreamRequest>,
     make_service: M,
@@ -113,10 +120,10 @@ where
     S::Future: Send,
 {
     type Output = ();
-    type IntoFuture = ServeFuture;
+    type IntoFuture = private::ServeFuture;
 
     fn into_future(mut self) -> Self::IntoFuture {
-        ServeFuture {
+        private::ServeFuture {
             inner: async move {
                 while let Some(stream_request) = self.stream_requests.next().await {
                     let data_stream = match stream_request.request() {
@@ -181,16 +188,20 @@ where
     }
 }
 
-pub struct ServeFuture {
-    inner: BoxFuture<'static, ()>,
-}
+mod private {
+    use super::*;
 
-impl Future for ServeFuture {
-    type Output = ();
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        self.inner.poll_unpin(cx)
+    pub struct ServeFuture {
+        pub inner: BoxFuture<'static, ()>,
     }
+    
+    impl Future for ServeFuture {
+        type Output = ();
+    
+        fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+            self.inner.poll_unpin(cx)
+        }
+    }    
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -236,6 +247,10 @@ where
     }
 }
 
+/// An incoming stream.
+/// 
+/// This is a single client connecting over the TOR network to your onion service.
+/// 
 pub struct IncomingStream<'a> {
     // in the future we can use this to return information about the circuit used etc.
     #[allow(dead_code)]
