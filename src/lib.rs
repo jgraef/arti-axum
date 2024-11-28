@@ -73,17 +73,13 @@ use hyper_util::{
         TokioIo,
     },
     server::conn::auto::Builder,
+    service::TowerToHyperService,
 };
-use pin_project_lite::pin_project;
 use tor_cell::relaycell::msg::Connected;
 use tor_hsservice::StreamRequest;
 use tor_proto::stream::{
     DataStream,
     IncomingStreamRequest,
-};
-use tower::util::{
-    Oneshot,
-    ServiceExt,
 };
 use tower_service::Service;
 
@@ -156,9 +152,11 @@ where
                         .await
                         .unwrap_or_else(|err| match err {});
 
-                    let hyper_service = TowerToHyperService {
-                        service: tower_service,
+                    let transformed_service = MapRequestBodyService {
+                        inner: tower_service,
                     };
+
+                    let hyper_service = TowerToHyperService::new(transformed_service);
 
                     tokio::spawn(async move {
                         match Builder::new(TokioExecutor::new())
@@ -204,46 +202,29 @@ mod private {
     }    
 }
 
-#[derive(Debug, Copy, Clone)]
-struct TowerToHyperService<S> {
-    service: S,
+#[derive(Clone)]
+struct MapRequestBodyService<S> {
+    inner: S,
 }
 
-impl<S> hyper::service::Service<Request<Incoming>> for TowerToHyperService<S>
+/// A Tower service that transforms the body of incoming requests from
+/// `Incoming` to `Body` and delegates the transformed request to the inner
+/// service.
+impl<S> Service<Request<Incoming>> for MapRequestBodyService<S>
 where
-    S: tower_service::Service<Request> + Clone,
+    S: Service<Request<Body>>,
 {
     type Response = S::Response;
     type Error = S::Error;
-    type Future = TowerToHyperServiceFuture<S, Request>;
+    type Future = S::Future;
 
-    fn call(&self, req: Request<Incoming>) -> Self::Future {
+    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx)
+    }
+
+    fn call(&mut self, req: Request<Incoming>) -> Self::Future {
         let req = req.map(Body::new);
-        TowerToHyperServiceFuture {
-            future: self.service.clone().oneshot(req),
-        }
-    }
-}
-
-pin_project! {
-    struct TowerToHyperServiceFuture<S, R>
-    where
-        S: tower_service::Service<R>,
-    {
-        #[pin]
-        future: Oneshot<S, R>,
-    }
-}
-
-impl<S, R> Future for TowerToHyperServiceFuture<S, R>
-where
-    S: tower_service::Service<R>,
-{
-    type Output = Result<S::Response, S::Error>;
-
-    #[inline]
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        self.project().future.poll(cx)
+        self.inner.call(req)
     }
 }
 
