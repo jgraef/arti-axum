@@ -15,13 +15,13 @@ categories = ["network-programming", "web-programming::http-server"]
 axum = "0.7.5"
 futures-util = "0.3.30"
 hyper = "1.4.1"
-hyper-util = "0.1.6"
+hyper-util = { version = "0.1.6", features = ["service"] }
 pin-project-lite = "0.2.14"
 tokio = "1.38.1"
 tor-cell = "0.20.0"
 tor-hsservice = "0.20.0"
 tor-proto = { version = "0.20.0", features = ["hs-service", "tokio"] }
-tower = { version = "0.4.13", features = ["util"] }
+# tower = { version = "0.4.13", features = ["util"] }
 tower-service = "0.3.2"
 tracing = "0.1.40"
 
