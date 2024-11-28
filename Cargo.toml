@@ -21,7 +21,7 @@ tokio = "1.38.1"
 tor-cell = "0.20.0"
 tor-hsservice = "0.20.0"
 tor-proto = { version = "0.20.0", features = ["hs-service", "tokio"] }
-tower = "0.4.13"
+tower = { version = "0.4.13", features = ["util"] }
 tower-service = "0.3.2"
 tracing = "0.1.40"
 
